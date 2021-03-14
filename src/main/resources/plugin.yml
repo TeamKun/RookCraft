@@ -1,0 +1,4 @@
+name: RookCraft
+version: ${project.version}
+main: net.kunmc.lab.rookcraft.RookCraft
+api-version: 1.15
