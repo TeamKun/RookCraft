@@ -2,3 +2,8 @@ name: RookCraft
 version: ${project.version}
 main: net.kunmc.lab.rookcraft.RookCraft
 api-version: 1.15
+commands:
+  rook:
+    description: RookCraft.
+    usage: /<command> set speed 倍率(0<n<10)
+    permission: op
