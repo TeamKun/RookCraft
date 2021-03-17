@@ -1,8 +1,11 @@
 package net.kunmc.lab.rookcraft;
 
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
@@ -10,9 +13,13 @@ import java.util.UUID;
 
 public final class RookCraft extends JavaPlugin {
     private static RookCraft INSTANCE;
-    private final HashMap<UUID,PlayerInfo> infoMap = new HashMap<>();
+    public static RookCraft getINSTANCE() {
+        return INSTANCE;
+    }
 
+    private final HashMap<UUID,PlayerInfo> infoMap = new HashMap<>();
     private double speed = 0.5;
+    private boolean isEnable = true;
 
     public void setSpeed(double speed) {
         this.speed = speed;
@@ -22,8 +29,16 @@ public final class RookCraft extends JavaPlugin {
         return speed;
     }
 
-    public static RookCraft getINSTANCE() {
-        return INSTANCE;
+    public void setEnable(boolean isEnable) {
+        this.isEnable = isEnable;
+        if(isEnable) {
+            getServer().getOnlinePlayers()
+                    .forEach(this::put);
+        }
+    }
+
+    public boolean isEnable() {
+        return isEnable;
     }
 
     @Override
@@ -52,49 +67,62 @@ public final class RookCraft extends JavaPlugin {
 
     private void put(Player p) {
         infoMap.put(p.getUniqueId(),new PlayerInfo(p.getLocation().getX(),p.getLocation().getZ()));
-        setCool(infoMap.get(p.getUniqueId()));
+        setCool(infoMap.get(p.getUniqueId()), true);
     }
 
-    private void setCool(PlayerInfo pInfo) {
+    private void setCool(PlayerInfo pInfo, boolean isJoin) {
         pInfo.setCool(true);
+        long delay = isJoin ? 20L : 2L;
         getServer().getScheduler().runTaskLater(this, new Runnable() {
             @Override
             public void run() {
                 pInfo.setCool(false);
             }
-        },20L);
+        },delay);
     }
 
-    public void playerMoveEvent(Player p) {
-        if(isNotValid(p)){return;}
+    public void playerMoveEvent(Player p, Location from, Location to) {
+        if(!isEnable) { return; }
+        if (isNotValid(p)) {
+            return;
+        }
         PlayerInfo pInfo = infoMap.get(p.getUniqueId());
-        if(pInfo.isCool()){
-            reset(pInfo,p);
+        if (pInfo.isCool()) {
+            resetPInfo(pInfo, p);
+            return;
         }
         if (pInfo.isMoving()) {
-            if (isExistBlock(p, pInfo)) {
-                setCool(pInfo);
-                reset(pInfo,p);
+            if (isExistBlock(p,pInfo) && isStop(from,to)) {
+                setCool(pInfo,false);
+                resetPInfo(pInfo, p);
                 return;
             }
             addVelocity(p, pInfo);
-                return;
+            return;
         }
         changePos(p, pInfo, p.getLocation().getX(), p.getLocation().getZ());
     }
 
     private boolean isExistBlock(Player p, PlayerInfo pInfo) {
-        return p.getWorld().rayTraceBlocks(p.getLocation(), pInfo.getDir(), 1) != null;
+        RayTraceResult result1;
+        result1 = p.getWorld().rayTraceBlocks(p.getLocation(), pInfo.getDir(), 1, FluidCollisionMode.NEVER,true);
+        RayTraceResult result2;
+        result2 = p.getWorld().rayTraceBlocks(p.getLocation().add(0,1,0),pInfo.getDir(),1, FluidCollisionMode.NEVER, true);
+        return result1 != null || result2 != null;
     }
 
-    private void reset(PlayerInfo pInfo, Player p) {
+    private boolean isStop(Location from, Location to) {
+        return from.distance(to) <= 0.1;
+    }
+
+    private void resetPInfo(PlayerInfo pInfo, Player p) {
         pInfo.setMoving(false);
         pInfo.setPosX(p.getLocation().getX());
         pInfo.setPosZ(p.getLocation().getZ());
     }
 
     private boolean isNotValid(Player p) {
-        if(p.getGameMode() == GameMode.SPECTATOR) {return true;}
+        if(p.getGameMode() == GameMode.SPECTATOR || p.getGameMode() == GameMode.CREATIVE) {return true;}
         if(p.isDead() || !p.isValid()){return true;}
         return !infoMap.containsKey(p.getUniqueId());
     }

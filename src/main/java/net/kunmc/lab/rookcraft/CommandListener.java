@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CommandListener implements TabExecutor {
-    private ArrayList<String> speeds = new ArrayList<>();
+    private final ArrayList<String> speeds = new ArrayList<>();
     public CommandListener() {
         Bukkit.getPluginCommand("rook").setExecutor(this);
         Bukkit.getPluginCommand("rook").setTabCompleter(this);
@@ -25,55 +25,65 @@ public class CommandListener implements TabExecutor {
     }
     @Override
     public boolean onCommand(CommandSender s, Command c,String l,String[] a) {
-        if(c.getName().equals("rook")) {
-            if(a.length >= 1) {
-                if (a[0].equals("set")) {
-                    if (a.length >= 2) {
-                        if (a[1].equals("speed")) {
-                            if (a.length >= 3) {
-                                try {
-                                    double speed = Double.parseDouble(a[2]);
-                                    if (speed <= 0 || 10 <= speed) {
-                                        s.sendMessage("§c設定可能な倍率は 0<n<10 です");
-                                        return true;
-                                    }
-                                    RookCraft.getINSTANCE().setSpeed(speed);
-                                    s.sendMessage("§a速度を" + speed + "にしました");
-                                    return true;
-                                } catch (Exception ignored) {
-                                    s.sendMessage("§c倍率を入力してください");
-                                    s.sendMessage("§c設定可能な倍率は 0<n<10 です");
-                                    return true;
-                                }
-                            }
-                            s.sendMessage("§c倍率を入力してください");
-                            s.sendMessage("§c設定可能な倍率は 0<n<10 です");
-                            return true;
-                        }
-                        s.sendMessage("§c引数が足りません");
-                        s.sendMessage("§c/rook set speed 倍率(0<n<10)");
-                        return true;
-                    }
-                    s.sendMessage("§c引数が足りません");
-                    s.sendMessage("§c/rook set speed 倍率(0<n<10)");
-                    return true;
-                }
-                if(a[0].equals("show")) {
-                    if(a.length >= 2) {
-                        if(a[1].equals("speed")) {
-                            s.sendMessage("§aspeed: " + RookCraft.getINSTANCE().getSpeed());
-                            return true;
-                        }
-                    }
-                    s.sendMessage("§c引数が足りません");
-                    s.sendMessage("§c/rook show speed");
-                    return true;
-                }
-            }
-            s.sendMessage("§c引数が足りません");
-            s.sendMessage("§c/rook set speed 倍率(0<n<10)");
-            s.sendMessage("§c/rook show speed");
+        if(!c.getName().equals("rook")) {
+            return true;
         }
+        if(a.length < 1) {
+            s.sendMessage("§c引数が足りません");
+            s.sendMessage("§c/rook set 速度(0<n<10)");
+            s.sendMessage("§c/rook show");
+            s.sendMessage("§c/rook on");
+            s.sendMessage("§c/rook off");
+            return true;
+        }
+        if(a[0].equals("set")) {
+            if(a.length < 2) {
+                s.sendMessage("§c速度を入力してください");
+                s.sendMessage("§c設定可能な速度は 0<n<10 です");
+                return true;
+            }
+            try {
+                double speed = Double.parseDouble(a[1]);
+                if(speed <= 0 || 10 <= speed) {
+                    s.sendMessage("§c設定可能な速度は 0<n<10 です");
+                    return true;
+                }
+                RookCraft.getINSTANCE().setSpeed(speed);
+                s.sendMessage("§a速度を" + speed + "にしました");
+                return true;
+            } catch (Exception e) {
+                s.sendMessage("§c速度を入力してください");
+                s.sendMessage("§c設定可能な速度は 0<n<10 です");
+                return true;
+            }
+        }
+        if(a[0].equals("show")) {
+            s.sendMessage("§a速度は " + RookCraft.getINSTANCE().getSpeed() + " です");
+            return true;
+        }
+        if(a[0].equals("on")) {
+            if(RookCraft.getINSTANCE().isEnable()) {
+                s.sendMessage("§aプラグインはすでに有効です");
+                return true;
+            }
+            RookCraft.getINSTANCE().setEnable(true);
+            s.sendMessage("§aプラグインを有効にしました");
+            return true;
+        }
+        if(a[0].equals("off")) {
+            if(!RookCraft.getINSTANCE().isEnable()) {
+                s.sendMessage("§aプラグインはすでに無効です");
+                return true;
+            }
+            RookCraft.getINSTANCE().setEnable(false);
+            s.sendMessage("§aプラグインを無効にしました");
+            return true;
+        }
+        s.sendMessage("§c引数が足りません");
+        s.sendMessage("§c/rook set 速度(0<n<10)");
+        s.sendMessage("§c/rook show");
+        s.sendMessage("§c/rook on");
+        s.sendMessage("§c/rook off");
         return true;
     }
 
@@ -81,13 +91,10 @@ public class CommandListener implements TabExecutor {
     public List<String> onTabComplete(CommandSender s,Command c,String l,String[] a) {
         if(c.getName().equals("rook")) {
             if(a.length == 1) {
-                return Stream.of("set","show").filter(e -> e.startsWith(a[0])).collect(Collectors.toList());
+                return Stream.of("set","show","on","off").filter(e -> e.startsWith(a[0])).collect(Collectors.toList());
             }
-            if(a.length == 2 && (a[0].equals("set") || a[0].equals("show"))) {
-                return Stream.of("speed").filter(e -> e.startsWith(a[1])).collect(Collectors.toList());
-            }
-            if(a.length == 3 && a[0].equals("set") && a[1].equals("speed")) {
-                return speeds.stream().filter(e -> e.startsWith(a[2])).collect(Collectors.toList());
+            if(a.length == 2 && a[0].equals("set")) {
+                return speeds.stream().filter(e -> e.startsWith(a[1])).collect(Collectors.toList());
             }
         }
         return null;

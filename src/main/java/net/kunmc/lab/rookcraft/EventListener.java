@@ -20,6 +20,6 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent e) {
-        RookCraft.getINSTANCE().playerMoveEvent(e.getPlayer());
+        RookCraft.getINSTANCE().playerMoveEvent(e.getPlayer(),e.getFrom(),e.getTo());
     }
 }
